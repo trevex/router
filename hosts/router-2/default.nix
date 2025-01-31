@@ -16,7 +16,7 @@
 
   services.tailscale.enable = true;
 
-  my.user = "router-1";
+  my.user = "router-2";
 
   my.openssh = {
     enable = true;
@@ -29,9 +29,9 @@
     enable = true;
     wanIf = "enp1s0";
     lanIf = "enp3s0";
-    lanAddress = "fd00:cafe::2/64";
+    lanAddress = "fd00:cafe::3/64";
     vipAddress = "fd00:cafe::1/64";
-    vipPriority = 40;
+    vipPriority = 30;
     raPrefix = "fd00:cafe::/64";
   };
 

@@ -20,7 +20,7 @@
     deploy-rs.url = "github:serokell/deploy-rs";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils, nixos-generators, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, flake-utils, deploy-rs, ... }@inputs:
     let
       overlays = [
       ];
@@ -41,7 +41,7 @@
         mylib = import ./lib { inherit pkgs inputs lib system; flake = self; };
       in
       rec {
-        devShell.${system} = mkShell rec {
+        devShell.${system}.default = mkShell rec {
           name = "router";
 
           buildInputs = with pkgs; [
@@ -52,7 +52,7 @@
         };
 
         packages.${system} = rec {
-          live = mkFormat "iso" [ ./hosts/live.nix ];
+          install-iso = mkFormat "install-iso" [ ./hosts/install.nix ];
         };
 
         nixosModules = mapModulesRec ./modules import;
@@ -66,6 +66,17 @@
               sshUser = "router-1";
               fastConnection = true; # copy the whole closure instead of letting the node substitute
               path = deploy-rs.lib.${system}.activate.nixos self.nixosConfigurations.router-1;
+              activationTimeout = 2400;
+              confirmTimeout = 1200;
+            };
+          };
+          router-2 = {
+            hostname = "192.168.1.137";
+            profiles.system = {
+              user = "root";
+              sshUser = "router-2";
+              fastConnection = true; # copy the whole closure instead of letting the node substitute
+              path = deploy-rs.lib.${system}.activate.nixos self.nixosConfigurations.router-2;
               activationTimeout = 2400;
               confirmTimeout = 1200;
             };

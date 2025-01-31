@@ -3,9 +3,10 @@ with lib;
 {
   options.my.user = mkOption {
     type = types.str;
+    default = "";
   };
 
-  config = {
+  config = mkIf (config.my.user != "") {
     users.users."${config.my.user}" = {
       isNormalUser = true;
       uid = 1000;
