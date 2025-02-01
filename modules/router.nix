@@ -9,7 +9,6 @@ in
       enable = mkEnableOption "Router";
       wanIf = mkOption {
         type = types.str;
-        default = "";
         description = ''
           TODO
         '';
@@ -17,7 +16,6 @@ in
       };
       lanIf = mkOption {
         type = types.str;
-        default = "";
         description = ''
           TODO
         '';
@@ -25,7 +23,6 @@ in
       };
       lanAddress = mkOption {
         type = types.str;
-        default = "";
         description = ''
           TODO
         '';
@@ -33,7 +30,6 @@ in
       };
       vipAddress = mkOption {
         type = types.str;
-        default = "";
         description = ''
           TODO
         '';
@@ -57,7 +53,6 @@ in
       };
       raPrefix = mkOption {
         type = types.str;
-        default = "";
         description = ''
           TODO
           '';
@@ -98,14 +93,14 @@ in
     systemd.network = {
       enable = true;
       networks = {
-        "10-${cfg.wanIf}" = mkIf (cfg.wanIf != "") {
+        "10-${cfg.wanIf}" = {
           matchConfig.Name = cfg.wanIf;
           networkConfig.DHCP = "yes";
           linkConfig.RequiredForOnline = "routable";
         };
         "10-${cfg.lanIf}" = {
           matchConfig.Name = cfg.lanIf;
-          address = mkIf (cfg.lanAddress != "") [
+          address = [
             cfg.lanAddress
           ];
           routes = [
@@ -116,7 +111,7 @@ in
     };
 
     # https://fy.blackhats.net.au/blog/2018-11-01-high-available-radvd-on-linux/
-    services.keepalived = mkIf (cfg.lanIf != "") {
+    services.keepalived = {
       enable = true;
 
       extraGlobalDefs = ''
@@ -145,7 +140,7 @@ in
       '';
     };
 
-    services.radvd = mkIf (cfg.raPrefix != "") {
+    services.radvd = {
       enable = true;
       config = ''
         interface ${cfg.lanIf}
