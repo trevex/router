@@ -72,6 +72,46 @@ in
     networking = {
       firewall.enable = false; # we are using nftables
       useDHCP = false; # we are using networkd
+
+      nftables = {
+        enable = true;
+        ruleset = ''
+          table ip filter {
+            chain input {
+              type filter hook input priority 0; policy drop;
+
+              iifname lo accept comment "Allow connections from loopback"
+              iifname { "${cfg.lanIf}" } accept comment "Allow local network to access the router"
+              iifname "${cfg.wanIf}" ct state { established, related } accept comment "Allow established traffic"
+              iifname "${cfg.wanIf}" icmp type { echo-request, destination-unreachable, time-exceeded } counter accept comment "Allow select ICMP"
+              tcp dport {ssh} accept comment "Allow SSH connections to the router"
+              iifname "${cfg.wanIf}" counter drop comment "Drop all other unsolicited traffic from wan"
+            }
+            chain forward {
+              type filter hook forward priority 0; policy drop;
+              iifname { "${cfg.lanIf}" } oifname { "${cfg.wanIf}" } accept comment "Allow trusted LAN to WAN"
+              iifname { "${cfg.wanIf}" } oifname { "${cfg.lanIf}" } ct state established, related accept comment "Allow established back to LANs"
+            }
+          }
+
+          table ip nat {
+            chain postrouting {
+              type nat hook postrouting priority 100; policy accept;
+              oifname "${cfg.wanIf}" masquerade
+            }
+          }
+
+          table ip6 filter {
+            chain input {
+              type filter hook input priority 0; policy drop;
+            }
+            chain forward {
+              type filter hook forward priority 0; policy drop;
+            }
+          }
+        '';
+      };
+
     };
 
     systemd.network = {
@@ -93,46 +133,6 @@ in
         };
       };
     };
-
-    nftables = {
-      enable = true;
-      ruleset = ''
-        table ip filter {
-          chain input {
-            type filter hook input priority 0; policy drop;
-
-            iifname lo accept comment "Allow connections from loopback"
-            iifname { "${cfg.lanIf}" } accept comment "Allow local network to access the router"
-            iifname "${cfg.wanIf}" ct state { established, related } accept comment "Allow established traffic"
-            iifname "${cfg.wanIf}" icmp type { echo-request, destination-unreachable, time-exceeded } counter accept comment "Allow select ICMP"
-            tcp dport {ssh} accept comment "Allow SSH connections to the router"
-            iifname "${cfg.wanIf}" counter drop comment "Drop all other unsolicited traffic from wan"
-          }
-          chain forward {
-            type filter hook forward priority 0; policy drop;
-            iifname { "${cfg.lanIf}" } oifname { "${cfg.wanIf}" } accept comment "Allow trusted LAN to WAN"
-            iifname { "${cfg.wanIf}" } oifname { "${cfg.lanIf}" } ct state established, related accept comment "Allow established back to LANs"
-          }
-        }
-
-        table ip nat {
-          chain postrouting {
-            type nat hook postrouting priority 100; policy accept;
-            oifname "${cfg.wanIf}" masquerade
-          }
-        }
-
-        table ip6 filter {
-	        chain input {
-            type filter hook input priority 0; policy drop;
-          }
-          chain forward {
-            type filter hook forward priority 0; policy drop;
-          }
-        }
-      '';
-    };
-
 
     # https://fy.blackhats.net.au/blog/2018-11-01-high-available-radvd-on-linux/
     services.keepalived = {
@@ -176,7 +176,7 @@ in
             AdvRASrcAddress {
                 fe80::1:1;
             };
-            RDNSS ${builtins.elemAt (lib.splitString cfg.vipAddress) 0}{
+            RDNSS ${builtins.elemAt (lib.splitString "/" cfg.vipAddress ) 0}{
                 AdvRDNSSLifetime 3600;
             };
             prefix ${cfg.raPrefix}
@@ -194,17 +194,17 @@ in
     services.kea.dhcp6 = {
       enable = true;
       settings = {
-        interface-config = {
+        interfaces-config = {
           interfaces = [ cfg.lanIf ];
         };
         option-data = [
           {
-            name = "ntp-servers";
-            data = "${builtins.elemAt (lib.splitString cfg.vipAddress) 0}";
+            name = "sntp-servers";
+            data = "${builtins.elemAt (lib.splitString "/" cfg.vipAddress) 0}";
           }
           {
             name = "dns-servers";
-            data = "${builtins.elemAt (lib.splitString cfg.vipAddress) 0}";
+            data = "${builtins.elemAt (lib.splitString "/" cfg.vipAddress) 0}";
           }
         ];
         lease-database = {
