@@ -45,9 +45,6 @@
     unzip
     htop
     fd
-    dig
-    tcpdump
-    inetutils
     jq
   ];
 }

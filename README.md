@@ -20,3 +20,11 @@ nixos-anywhere \
   --no-substitute-on-destination --debug
 sudo tailscale up
 ```
+
+## Notes
+
+* IPv6 HA RA base network with dedicated prefix (VRRP + RADVD)
+* Additional prefix for DHCPv6 which creates "translatable" IPs
+* Use kea high availabiliy hook for DHCPv6
+* As IPs are translatable, we can use SIIT to reach IPv4
+* If we are natting the network now, we can use conntrackd (contrack-tools)

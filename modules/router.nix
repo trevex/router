@@ -61,6 +61,12 @@ in
     };
   };
   config = mkIf cfg.enable {
+    environment.systemPackages = with pkgs; [
+      dig
+      tcpdump
+      inetutils
+      pwru
+    ];
 
     boot.kernel.sysctl = {
       "net.ipv4.ip_nonlocal_bind" = true;
@@ -105,9 +111,16 @@ in
           table ip6 filter {
             chain input {
               type filter hook input priority 0; policy drop;
+              iifname lo accept comment "Allow connections from loopback"
+              iifname { "${cfg.lanIf}" } accept comment "Allow local network to access the router"
+              iifname "${cfg.wanIf}" ct state { established, related } accept comment "Allow established traffic"
+              iifname "${cfg.wanIf}" icmp type { echo-request, destination-unreachable, time-exceeded } counter accept comment "Allow select ICMP"
+              iifname "${cfg.wanIf}" counter drop comment "Drop all other unsolicited traffic from wan"
             }
             chain forward {
               type filter hook forward priority 0; policy drop;
+              iifname { "${cfg.lanIf}" } oifname { "${cfg.wanIf}" } accept comment "Allow trusted LAN to WAN"
+              iifname { "${cfg.wanIf}" } oifname { "${cfg.lanIf}" } ct state established, related accept comment "Allow established back to LANs"
             }
           }
         '';
