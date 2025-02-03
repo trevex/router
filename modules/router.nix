@@ -65,6 +65,7 @@ in
     boot.kernel.sysctl = {
       "net.ipv4.ip_nonlocal_bind" = true;
       "net.ipv4.conf.all.forwarding" = true;
+      "net.ipv6.ip_nonlocal_bind" = true;
       "net.ipv6.conf.all.forwarding" = true;
       "net.ipv6.conf.${cfg.lanIf}.accept_ra" = false;
     };
